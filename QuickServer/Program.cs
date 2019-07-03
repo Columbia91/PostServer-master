@@ -30,7 +30,7 @@ namespace QuickServer
                 sListener.Listen(10);
 
                 Console.WriteLine("Ожидаем соединение через порт {0}", ipEndPoint);
-                //WorkWithClients(sListener);
+                
                 sListener.BeginAccept(WorkWithClients, null);
                 Console.ReadLine();
                 sListener.Shutdown(SocketShutdown.Both);
@@ -58,19 +58,20 @@ namespace QuickServer
         {
             try
             {
+                    Socket handler = sListener.EndAccept(state as IAsyncResult);
+                    sListener.BeginAccept(WorkWithClients, null);
+
+                    // Мы дождались клиента, пытающегося с нами соединиться
+                    Console.WriteLine("\nНовое соединение с клиентом");
                 // Начинаем слушать соединения
                 while (true)
                 {
                     // Программа приостанавливается, ожидая входящее соединение
-                    Socket handler = sListener.EndAccept(state as IAsyncResult);
-                    sListener.BeginAccept(WorkWithClients, null);
                     string index = null;
-
-                    // Мы дождались клиента, пытающегося с нами соединиться
-                    Console.WriteLine("\nНовое соединение с клиентом");
-
+                    
                     byte[] bytes = new byte[1024];
                     int bytesRec = handler.Receive(bytes);
+                    if (bytesRec <= 0) break;
 
                     index += Encoding.UTF8.GetString(bytes, 0, bytesRec);
 
@@ -85,13 +86,11 @@ namespace QuickServer
                                       .ToArray();
 
                     handler.Send(msg);
-
+                }
                     Console.WriteLine("Сервер отправил ответ клиенту\n" +
                         "Завершение соединения с клиентом.");
-
                     handler.Shutdown(SocketShutdown.Both);
                     handler.Close();
-                }
             }
             catch (SocketException ex)
             {
